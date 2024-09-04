@@ -59,6 +59,7 @@ fn setup_environment(
             ..default()
         },
         Collider::cuboid(ground_size, ground_height, ground_size),
+        Friction::new(2.0),
     ));
 
     let obstacle_size = 60.0;
@@ -80,7 +81,7 @@ fn setup_environment(
             },
             ..default()
         },
-        Friction::new(1.0),
+        Friction::new(2.0),
         obstacle_collider,
     ));
 
@@ -104,7 +105,7 @@ fn setup_environment(
             },
             ..default()
         },
-        Friction::new(1.0),
+        Friction::new(2.0),
         obstacle_collider,
     ));
 }
@@ -122,22 +123,30 @@ pub enum Axle {
 }
 
 fn setup_physics(mut commands: Commands) {
-    let start_height = 1.0;
+    let car_scale = 4.0;
+    let start_height = 1.0 * car_scale;
 
     // side to side
-    let chassis_width = 0.5;
+    let chassis_width = 0.5 * car_scale;
     // front to back
-    let chassis_length = 1.0;
+    let chassis_length = 1.0 * car_scale;
     // top to bottom
-    let chassis_height = 0.25;
+    let chassis_height = 0.25 * car_scale;
+
+    println!("car width: {}", chassis_width);
+    println!("car height: {}", chassis_height);
+    println!("car length: {}", chassis_length);
 
     // range of motion, a very stiff spring will hold the
     // suspension in the middle of this range
-    let suspension_height = 0.3;
+    let suspension_height = 0.3 * car_scale;
 
     // wheel dimensions
-    let wheel_radius = 0.2;
-    let wheel_width = 0.1;
+    let wheel_radius = 0.2 * car_scale;
+    let wheel_width = 0.1 * car_scale;
+
+    println!("wheel radius: {}", wheel_radius);
+    println!("wheel width: {}", wheel_width);
 
     // collision group to prevent collision between car parts
     let car_group = Group::GROUP_1;
@@ -149,7 +158,7 @@ fn setup_physics(mut commands: Commands) {
             chassis_height / 2.0,
             chassis_length / 2.0,
         ),
-        ColliderMassProperties::Mass(100.0),
+        ColliderMassProperties::Mass(2000.0),
         CollisionGroups::new(car_group, !car_group),
     );
 
@@ -184,7 +193,8 @@ fn setup_physics(mut commands: Commands) {
         let is_rear = !is_front;
         let is_right = !is_left;
 
-        let is_driving = is_rear | is_front;
+        //let is_driving = is_rear | is_front;
+        let is_driving = is_rear;
         // anchors set the joint relative to the collider, this sets the axle
         // joint to be level with the chassis and directly above the axle
         let axle_anchor1 = Vec3::new(x / 2.0, 0.0, z);
@@ -263,7 +273,7 @@ fn setup_physics(mut commands: Commands) {
             Collider::cylinder(wheel_width / 2.0, wheel_radius),
             Friction::coefficient(1.0), // make sure it doesn't slide around
             Restitution::coefficient(0.5), // wheels should bounce right?
-            ColliderMassProperties::Mass(10.0),
+            ColliderMassProperties::Mass(20.0),
             CollisionGroups::new(car_group, !car_group),
         );
 
