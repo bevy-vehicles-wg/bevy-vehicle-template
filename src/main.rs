@@ -177,7 +177,7 @@ fn setup_physics(mut commands: Commands) {
         // that means it can't use a revolute joint
         let wheel_collider = (
             Collider::cylinder(wheel_width / 2.0, wheel_radius),
-            Friction::coefficient(10.0), // make sure it doesn't slide around
+            Friction::coefficient(1.0), // make sure it doesn't slide around
             Restitution::coefficient(0.5), // wheels should bounce right?
             ColliderMassProperties::Mass(10.0),
             CollisionGroups::new(car_group, !car_group),
@@ -242,7 +242,7 @@ fn car_controller(
                 joint
                     .data
                     .as_mut()
-                    .set_motor_position(JointAxis::AngY, steer, 10000.0, 10000.0);
+                    .set_motor_position(JointAxis::AngY, steer, 10000.0, 1000.0);
             }
             _ => {}
         }
