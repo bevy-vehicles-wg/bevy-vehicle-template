@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::prelude::*;
+use bevy_third_person_camera::*;
 
 fn main() {
     App::new()
@@ -16,6 +17,7 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .add_plugins(InfiniteGridPlugin)
+        .add_plugins(ThirdPersonCameraPlugin)
         .add_systems(Startup, (setup_graphics, setup_environment, setup_physics))
         .add_systems(Update, car_controller)
         .run();
@@ -31,7 +33,13 @@ fn setup_graphics(mut commands: Commands) {
                 .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
             ..Default::default()
         },
-        PanOrbitCamera::default(),
+        //PanOrbitCamera::default(),
+        ThirdPersonCamera{
+            offset_enabled: true,
+            offset: Offset::new(0.5, 2.0),
+            zoom: Zoom::new(1.5, 10.0),
+            ..default()
+        }
     ));
 }
 
@@ -170,6 +178,7 @@ fn setup_physics(mut commands: Commands) {
             RigidBody::Dynamic,
             chassis_collider,
             Sleeping::disabled(),
+            ThirdPersonCameraTarget,
         ))
         .id();
 
