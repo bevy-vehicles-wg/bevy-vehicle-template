@@ -27,8 +27,8 @@ fn setup_graphics(mut commands: Commands) {
     // then swivel the view around and the wheels should start bouncing
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(10.0, 3.0, 0.0)
-                .looking_at(Vec3::new(0.0, 3.0, 0.0), Vec3::Y),
+            transform: Transform::from_xyz(0.0, 10.0, 20.0)
+                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
             ..Default::default()
         },
         PanOrbitCamera::default(),
@@ -184,7 +184,7 @@ fn setup_physics(mut commands: Commands) {
         let is_rear = !is_front;
         let is_right = !is_left;
 
-        let is_driving = is_rear;
+        let is_driving = is_rear | is_front;
         // anchors set the joint relative to the collider, this sets the axle
         // joint to be level with the chassis and directly above the axle
         let axle_anchor1 = Vec3::new(x / 2.0, 0.0, z);
