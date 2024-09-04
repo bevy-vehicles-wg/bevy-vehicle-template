@@ -315,6 +315,7 @@ name = "bevy-vehicle-template"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_infinite_grid",
  "bevy_panorbit_camera",
  "bevy_rapier3d",
 ]
@@ -659,6 +660,15 @@ dependencies = [
  "bevy_reflect",
  "bevy_utils",
  "smallvec",
+]
+
+[[package]]
+name = "bevy_infinite_grid"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52907a3b5085f3adda4c0ec848142402156e7df249eac15ea03473e205218b71"
+dependencies = [
+ "bevy",
 ]
 
 [[package]]

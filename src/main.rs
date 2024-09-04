@@ -1,6 +1,10 @@
+use bevy::color::palettes::basic::*;
+use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::prelude::*;
+use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
+use bevy::math::vec3;
 
 fn main() {
     App::new()
@@ -11,6 +15,7 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::default(),
             RapierDebugRenderPlugin::default(),
         ))
+        .add_plugins(InfiniteGridPlugin)
         .add_systems(Startup, (setup_graphics, setup_environment, setup_physics))
         .add_systems(Update, car_controller)
         .run();
@@ -30,14 +35,56 @@ fn setup_graphics(mut commands: Commands) {
     ));
 }
 
-fn setup_environment(mut commands: Commands) {
+fn setup_environment(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+
+    commands.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 1000.0,
+    });
+
+    commands.spawn(InfiniteGridBundle::default());
+
     // add other obstacles here later
     let ground_size = 500.0;
     let ground_height = 0.1;
 
     commands.spawn((
-        TransformBundle::from(Transform::from_xyz(0.0, -ground_height, 0.0)),
+        PbrBundle {
+            mesh: meshes.add(Cuboid::new(ground_size, ground_height, ground_size)),
+            material: materials.add(Color::Srgba(GRAY)),
+            transform: Transform::from_xyz(0.0, -ground_height, 0.0),
+            ..default()
+        },
         Collider::cuboid(ground_size, ground_height, ground_size),
+    ));
+
+
+
+    let obstacle_size = 60.0;
+    let obstacle = Cuboid::new(obstacle_size, obstacle_size, obstacle_size);
+    let obstacle_collider = Collider::cuboid(
+        obstacle_size / 2.0,
+        obstacle_size / 2.0,
+        obstacle_size / 2.0,
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(obstacle),
+            material: materials.add(Color::Srgba(ORANGE)),
+            transform: Transform {
+                translation: vec3(-20.0, -20.0, 40.0),
+                rotation: Quat::from_rotation_y(-60f32.to_radians())
+                    * Quat::from_rotation_x(60f32.to_radians()),
+                ..default()
+            },
+            ..default()
+        },
+        Friction::new(1.0),
+        obstacle_collider,
     ));
 }
 
