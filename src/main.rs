@@ -1,10 +1,10 @@
 use bevy::color::palettes::basic::*;
 use bevy::color::palettes::css::*;
+use bevy::math::vec3;
 use bevy::prelude::*;
+use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::prelude::*;
-use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
-use bevy::math::vec3;
 
 fn main() {
     App::new()
@@ -40,7 +40,6 @@ fn setup_environment(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 1000.0,
@@ -61,8 +60,6 @@ fn setup_environment(
         },
         Collider::cuboid(ground_size, ground_height, ground_size),
     ));
-
-
 
     let obstacle_size = 60.0;
     let obstacle = Cuboid::new(obstacle_size, obstacle_size, obstacle_size);
@@ -89,7 +86,10 @@ fn setup_environment(
 }
 
 #[derive(Component)]
-pub struct Wheel;
+pub struct Wheel {
+    is_driving: bool,
+    is_left: bool,
+}
 
 #[derive(Component)]
 pub enum Axle {
@@ -146,9 +146,21 @@ fn setup_physics(mut commands: Commands) {
     let x = 0.6 * (chassis_width + wheel_width);
     let y = -chassis_height;
     let z = 0.45 * chassis_length;
-    let wheel_positions = vec![(x, y, z), (-x, y, z), (-x, y, -z), (x, y, -z)];
+    let wheel_positions = vec![(-x, y, z),(x, y, z),  (-x, y, -z), (x, y, -z)];
 
-    for (x, y, z) in wheel_positions {
+    let front = true;
+    let rear = !front;
+    let left = true;
+    let right = !left;
+
+    let wheel_label = vec![(left, rear), (right, rear),  (left, front), (right, front)];
+
+    for (i, (x, y, z)) in wheel_positions.into_iter().enumerate() {
+        let (is_left, is_front) = wheel_label[i];
+        let is_rear = !is_front;
+        let is_right = !is_left;
+
+        let is_driving = is_rear;
         // anchors set the joint relative to the collider, this sets the axle
         // joint to be level with the chassis and directly above the axle
         let axle_anchor1 = Vec3::new(x / 2.0, 0.0, z);
@@ -156,14 +168,15 @@ fn setup_physics(mut commands: Commands) {
 
         // sets the locked axes of the axle joint, both are free
         // in linear Y (suspension) and the front is free in angular Y (steer)
-        let locked_axle_axes = match z > 0.0 {
-            true => JointAxesMask::all() ^ JointAxesMask::ANG_Y ^ JointAxesMask::LIN_Y,
-            false => JointAxesMask::all() ^ JointAxesMask::LIN_Y,
+        let locked_axle_axes = if is_front {
+            JointAxesMask::all() ^ JointAxesMask::ANG_Y ^ JointAxesMask::LIN_Y
+        }else{
+            JointAxesMask::all() ^ JointAxesMask::LIN_Y
         };
 
         // set the axle marker indicating if an axle is fixed or free to steer,
         // not really used anymore, could just be a steered axle marker
-        let axle_marker = match z > 0.0 {
+        let axle_marker = match is_front {
             true => Axle::Steered,
             false => Axle::Fixed,
         };
@@ -239,7 +252,10 @@ fn setup_physics(mut commands: Commands) {
             }),
             RigidBody::Dynamic,
             wheel_collider,
-            Wheel,
+            Wheel {
+                is_driving,
+                is_left,
+            },
             Sleeping::disabled(),
             ImpulseJoint::new(axle_id, TypedJoint::GenericJoint(wheel_joint)),
         ));
@@ -249,7 +265,7 @@ fn setup_physics(mut commands: Commands) {
 fn car_controller(
     _time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut wheel_query: Query<&mut ImpulseJoint, With<Wheel>>,
+    mut wheel_query: Query<(&mut ImpulseJoint, &Wheel)>,
     mut axle_query: Query<
         (&mut ImpulseJoint, &mut ExternalImpulse, &Transform, &Axle),
         Without<Wheel>,
@@ -260,10 +276,10 @@ fn car_controller(
     let mut jump = 0.0;
 
     if keys.pressed(KeyCode::KeyW) {
-        speed = 30.0;
+        speed = -30.0;
     }
     if keys.pressed(KeyCode::KeyS) {
-        speed = -30.0;
+        speed = 30.0;
     }
     if keys.pressed(KeyCode::KeyA) {
         steer = std::f32::consts::PI / 6.0;
@@ -275,12 +291,29 @@ fn car_controller(
         jump = 400.0;
     }
 
-    for mut wheel in wheel_query.iter_mut() {
-        // Whats a factor?
-        wheel
-            .data
-            .as_mut()
-            .set_motor_velocity(JointAxis::AngX, speed, 50.0);
+
+    let differential_strength = 0.5;
+    let sideways_shift = steer.sin() * differential_strength;
+    let speed_diff = if sideways_shift > 0.0 {
+        f32::hypot(1.0, sideways_shift)
+    } else {
+        1.0 / f32::hypot(1.0, sideways_shift)
+    };
+
+    let ms = [1.0 / speed_diff, speed_diff];
+
+    for (mut impulse_joint, wheel) in wheel_query.iter_mut() {
+        if wheel.is_driving {
+            let ms = if wheel.is_left{
+                ms[0]
+            }else{
+                ms[1]
+            };
+            impulse_joint
+                .data
+                .as_mut()
+                .set_motor_velocity(JointAxis::AngX, speed * ms, 50.0);
+        }
     }
 
     for (mut joint, mut impulse, tf, axle) in axle_query.iter_mut() {
