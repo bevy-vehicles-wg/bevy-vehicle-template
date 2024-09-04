@@ -71,11 +71,35 @@ fn setup_environment(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(obstacle),
-            material: materials.add(Color::Srgba(ORANGE)),
+            material: materials.add(Color::Srgba(YELLOW)),
             transform: Transform {
                 translation: vec3(-20.0, -20.0, 40.0),
                 rotation: Quat::from_rotation_y(-60f32.to_radians())
                     * Quat::from_rotation_x(60f32.to_radians()),
+                ..default()
+            },
+            ..default()
+        },
+        Friction::new(1.0),
+        obstacle_collider,
+    ));
+
+
+    let obstacle_size = 60.0;
+    let obstacle = Cuboid::new(obstacle_size, obstacle_size, obstacle_size);
+    let obstacle_collider = Collider::cuboid(
+        obstacle_size / 2.0,
+        obstacle_size / 2.0,
+        obstacle_size / 2.0,
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(obstacle),
+            material: materials.add(Color::Srgba(ORANGE)),
+            transform: Transform {
+                translation: vec3(10.0, -20.0, -40.0),
+                rotation: Quat::from_rotation_y(-30f32.to_radians())
+                    * Quat::from_rotation_x(30f32.to_radians()),
                 ..default()
             },
             ..default()
