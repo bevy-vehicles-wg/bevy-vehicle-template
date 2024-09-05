@@ -3,7 +3,6 @@ use bevy::color::palettes::css::*;
 use bevy::math::vec3;
 use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::prelude::*;
 use bevy_third_person_camera::*;
 
@@ -12,7 +11,6 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.2)))
         .add_plugins((
             DefaultPlugins,
-            PanOrbitCameraPlugin,
             RapierPhysicsPlugin::<NoUserData>::default(),
             RapierDebugRenderPlugin::default(),
         ))
@@ -24,22 +22,18 @@ fn main() {
 }
 
 fn setup_graphics(mut commands: Commands) {
-    // either I'm crazy or moving the camera perturbs the rigid bodies
-    // set the chassis to fixed so the car is floating in the air,
-    // then swivel the view around and the wheels should start bouncing
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 10.0, 20.0)
                 .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
             ..Default::default()
         },
-        //PanOrbitCamera::default(),
-        ThirdPersonCamera{
+        ThirdPersonCamera {
             offset_enabled: true,
             offset: Offset::new(0.5, 2.0),
             zoom: Zoom::new(1.5, 10.0),
             ..default()
-        }
+        },
     ));
 }
 
@@ -92,7 +86,6 @@ fn setup_environment(
         Friction::new(2.0),
         obstacle_collider,
     ));
-
 
     let obstacle_size = 60.0;
     let obstacle = Cuboid::new(obstacle_size, obstacle_size, obstacle_size);
@@ -188,14 +181,14 @@ fn setup_physics(mut commands: Commands) {
     let x = 0.6 * (chassis_width + wheel_width);
     let y = -chassis_height;
     let z = 0.45 * chassis_length;
-    let wheel_positions = vec![(-x, y, z),(x, y, z),  (-x, y, -z), (x, y, -z)];
+    let wheel_positions = vec![(-x, y, z), (x, y, z), (-x, y, -z), (x, y, -z)];
 
     let front = true;
     let rear = !front;
     let left = true;
     let right = !left;
 
-    let wheel_label = vec![(left, rear), (right, rear),  (left, front), (right, front)];
+    let wheel_label = vec![(left, rear), (right, rear), (left, front), (right, front)];
 
     for (i, (x, y, z)) in wheel_positions.into_iter().enumerate() {
         let (is_left, is_front) = wheel_label[i];
@@ -213,7 +206,7 @@ fn setup_physics(mut commands: Commands) {
         // in linear Y (suspension) and the front is free in angular Y (steer)
         let locked_axle_axes = if is_front {
             JointAxesMask::all() ^ JointAxesMask::ANG_Y ^ JointAxesMask::LIN_Y
-        }else{
+        } else {
             JointAxesMask::all() ^ JointAxesMask::LIN_Y
         };
 
@@ -288,11 +281,14 @@ fn setup_physics(mut commands: Commands) {
 
         // bevy wheel entity with 90 degree rotation
         commands.spawn((
-            TransformBundle::from(Transform {
-                translation: Vec3::new(x, y + start_height, z),
-                rotation: Quat::from_rotation_z(-std::f32::consts::PI / 2.0),
-                scale: Vec3::ONE,
-            }),
+            PbrBundle {
+                transform: Transform {
+                    translation: Vec3::new(x, y + start_height, z),
+                    rotation: Quat::from_rotation_z(-std::f32::consts::PI / 2.0),
+                    ..default()
+                },
+                ..default()
+            },
             RigidBody::Dynamic,
             wheel_collider,
             Wheel {
@@ -334,7 +330,6 @@ fn car_controller(
         jump = 400.0;
     }
 
-
     let differential_strength = 0.5;
     let sideways_shift = steer.sin() * differential_strength;
     let speed_diff = if sideways_shift > 0.0 {
@@ -347,11 +342,7 @@ fn car_controller(
 
     for (mut impulse_joint, wheel) in wheel_query.iter_mut() {
         if wheel.is_driving {
-            let ms = if wheel.is_left{
-                ms[0]
-            }else{
-                ms[1]
-            };
+            let ms = if wheel.is_left { ms[0] } else { ms[1] };
             impulse_joint
                 .data
                 .as_mut()
