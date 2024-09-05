@@ -31,7 +31,7 @@ fn setup_graphics(mut commands: Commands) {
         ThirdPersonCamera {
             offset_enabled: true,
             offset: Offset::new(0.5, 2.0),
-            zoom: Zoom::new(1.5, 10.0),
+            zoom: Zoom::new(10.0, 20.0),
             ..default()
         },
     ));
